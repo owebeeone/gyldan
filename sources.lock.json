@@ -1,0 +1,28 @@
+{
+  "owner": "owebeeone",
+  "repositories": {
+    "gyldan-base": "a789934c6d3d067653101cd41b7c21a6f40014cb",
+    "gyldan-bigint": "3b1ba7222e7cf22acd4e1a47cedcc01148a6c383",
+    "gyldan-bplus-tree": "118d29e873cc1f962679254e34cee400be676e19",
+    "gyldan-catalog": "a11564beebe5a10384d215947d578d27e9991c0d",
+    "gyldan-core": "b01848ad58401656f6bf1660dbd6194d99c642c7",
+    "gyldan-core-py": "abc4533b51e09e314b5dce6ab635ac8d39fc351a",
+    "gyldan-engine": "ff8489d420faf5f2aa8491a9023507719454fbc0",
+    "gyldan-files": "dba3d968046acad9ffa99ab74ceb2857705de28e",
+    "gyldan-generations": "489264758ca22d4102820d03fdb914459a87f6ab",
+    "gyldan-grow-list": "7959f31c5a20dc636c15850ea7dad0b4c05101d8",
+    "gyldan-journal": "dbdfb63a4a93aedcac51acb06608e98b91ae5e17",
+    "gyldan-key-encoding": "c47ececec62fbc5f6020056ae26af4bffc3acd93",
+    "gyldan-log": "c9c56fc5195970f11542808db2db362634244773",
+    "gyldan-mapped": "b5c1f015bbc8e8291419add8a9e6542ba8f34a1e",
+    "gyldan-object-table": "b7a49e641a1f24a33d4514dd69182052caa94cda",
+    "gyldan-python": "96eb931aca662fa7f5c635d1eac118ebfc87867a",
+    "gyldan-query": "cdff250881224b08d22f42c036470508484fb6b8",
+    "gyldan-radix-map": "ae2b9844c1902ce0f1b2c7d71319f1fdb49291f0",
+    "gyldan-shared": "d10114f763d562f70981f2a7f87a859e6bdb8b8d",
+    "gyldan-shared-py": "11af6ad2454fa942d1d2e7bb672f989c7be3c66f",
+    "gyldan-store": "80d1cb119a415c500fd8588a3f590fe55c09c815",
+    "gyldan-testing": "2c98b28de072dd72bd621d706ff4df9fe2055704",
+    "gyldan-validator": "0577b5941aeae1c2a3831fef681b932e54f19267"
+  }
+}

@@ -1,0 +1,165 @@
+name: Build and publish Gyldan
+
+run-name: Gyldan ${{ inputs.version || github.ref_name }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Package version for the build-only run
+        required: true
+        default: 0.0.0a1
+        type: string
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+jobs:
+  plan:
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.matrix.outputs.version }}
+      prerelease: ${{ steps.matrix.outputs.prerelease }}
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - id: matrix
+        env:
+          REQUESTED_VERSION: ${{ inputs.version }}
+        run: |
+          if [[ "$GITHUB_REF_TYPE" == tag && "$GITHUB_EVENT_NAME" == push ]]; then
+            REQUESTED_VERSION="${GITHUB_REF_NAME#v}"
+          fi
+          python3 tools/release_matrix.py "$REQUESTED_VERSION"
+
+  wheels:
+    needs: plan
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    name: ${{ matrix.target }} / Python ${{ matrix.python }}
+    timeout-minutes: 45
+    env:
+      RELEASE_VERSION: ${{ needs.plan.outputs.version }}
+      WHEEL_TAG: ${{ matrix.tag }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Set build paths
+        shell: bash
+        run: |
+          printf 'SOURCE_DIR=%s/gyldan-sources\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
+          printf 'DIST_DIR=%s/gyldan-dist\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        if: ${{ matrix.container == '' }}
+        with:
+          python-version: ${{ matrix.python }}
+          architecture: ${{ matrix.arch }}
+      - name: Fetch the pinned component commits
+        env:
+          GYLDAN_SOURCE_KEYS: ${{ secrets.GYLDAN_SOURCE_KEYS }}
+          BUILD_IMAGE: ${{ matrix.container }}
+        shell: bash
+        run: |
+          if [[ -n "$BUILD_IMAGE" ]]; then
+            python3 tools/fetch_sources.py "$SOURCE_DIR"
+          else
+            python tools/fetch_sources.py "$SOURCE_DIR"
+          fi
+      - name: Build and test Windows or macOS wheel
+        if: ${{ matrix.container == '' }}
+        shell: bash
+        run: |
+          python -m pip install 'wheel>=0.46,<1' 'packaging>=25,<27'
+          python tools/build_wheel.py --version "$RELEASE_VERSION" --tag "$WHEEL_TAG" --sources "$SOURCE_DIR" --dist "$DIST_DIR"
+      - name: Build and test manylinux wheel
+        if: ${{ matrix.container != '' }}
+        env:
+          BUILD_IMAGE: ${{ matrix.container }}
+          PYTHON_ABI: ${{ matrix.abi }}
+        shell: bash
+        run: |
+          mkdir -p "$DIST_DIR"
+          docker run --rm \
+            --volume "$GITHUB_WORKSPACE:/release:ro" \
+            --volume "$SOURCE_DIR:/sources:ro" \
+            --volume "$DIST_DIR:/dist" \
+            --env GITHUB_ACTIONS --env PYTHON_ABI --env RELEASE_VERSION --env WHEEL_TAG \
+            "$BUILD_IMAGE" bash -euc '
+              python="/opt/python/$PYTHON_ABI-$PYTHON_ABI/bin/python"
+              "$python" -m pip install "wheel>=0.46,<1" "packaging>=25,<27"
+              "$python" /release/tools/build_wheel.py --version "$RELEASE_VERSION" --tag "$WHEEL_TAG" --sources /sources --dist /dist
+            '
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: wheel-${{ matrix.target }}-${{ matrix.abi }}
+          path: ${{ env.DIST_DIR }}/*.whl
+          if-no-files-found: error
+          overwrite: true
+
+  verify:
+    needs: [plan, wheels]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        with:
+          pattern: wheel-*
+          merge-multiple: true
+          path: dist
+      - env:
+          RELEASE_VERSION: ${{ needs.plan.outputs.version }}
+        run: python3 tools/release_matrix.py "$RELEASE_VERSION" --dist dist
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: verified-release
+          path: |
+            dist/*.whl
+            SHA256SUMS
+          if-no-files-found: error
+          overwrite: true
+
+  publish-pypi:
+    needs: verify
+    if: github.event_name == 'push' && github.ref_type == 'tag'
+    runs-on: ubuntu-24.04
+    environment: pypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        with:
+          name: verified-release
+      - uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # release/v1
+        with:
+          packages-dir: dist
+
+  github-release:
+    needs: [plan, publish-pypi]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        with:
+          name: verified-release
+      - name: Create the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ needs.plan.outputs.version }}
+          PRERELEASE: ${{ needs.plan.outputs.prerelease }}
+        run: |
+          options=()
+          if [[ "$PRERELEASE" == true ]]; then
+            options+=(--prerelease)
+          fi
+          gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --verify-tag \
+            --title "Gyldan $RELEASE_VERSION" --generate-notes "${options[@]}" dist/*.whl SHA256SUMS
