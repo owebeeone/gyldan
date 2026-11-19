@@ -88,8 +88,14 @@ def assemble(version, tag, components, output):
     metadata["Summary"] = "GyldanDB Python API and native file-backed database provider"
     metadata["Requires-Python"] = ">=3.12"
     metadata["Project-URL"] = "Source, https://github.com/owebeeone/gyldan"
+    metadata["License-Expression"] = (
+        "GPL-3.0-only AND BSD-3-Clause AND MIT AND Unicode-3.0"
+    )
     info = f"gyldan-{version}.dist-info"
     dependencies, payload = set(), {}
+    for name in ("LICENSE", "COPYRIGHT"):
+        metadata["License-File"] = name
+        payload[f"{info}/licenses/{name}"] = (TOOLS.parent / name).read_bytes()
     entry_points = ConfigParser()
     entry_points.optionxform = str
     for name, (path, _) in sorted(files.items()):
