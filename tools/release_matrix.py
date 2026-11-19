@@ -26,7 +26,7 @@ PLATFORMS = (
     },
     {
         "target": "windows-amd64",
-        "runner": "windows-2025",
+        "runner": "windows-2025-vs2026",
         "arch": "x64",
         "platform": "win_amd64",
         "container": "",

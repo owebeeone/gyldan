@@ -76,6 +76,9 @@ jobs:
         if: ${{ matrix.container == '' }}
         shell: bash
         run: |
+          if [[ "$RUNNER_OS" == Windows ]]; then
+            export CMAKE_GENERATOR='Visual Studio 18 2026'
+          fi
           python -m pip install 'wheel>=0.46,<1' 'packaging>=25,<27'
           python tools/build_wheel.py --version "$RELEASE_VERSION" --tag "$WHEEL_TAG" --sources "$SOURCE_DIR" --dist "$DIST_DIR"
       - name: Build and test manylinux wheel

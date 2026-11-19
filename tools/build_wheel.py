@@ -238,9 +238,8 @@ def main():
     if native_platform.startswith("macosx_"):
         env["MACOSX_DEPLOYMENT_TARGET"] = "26.0"
     if os.name == "nt":
-        env.update(
-            CMAKE_GENERATOR="Visual Studio 17 2022", CMAKE_GENERATOR_PLATFORM="x64"
-        )
+        env.setdefault("CMAKE_GENERATOR", "Visual Studio 17 2022")
+        env.setdefault("CMAKE_GENERATOR_PLATFORM", "x64")
     with TemporaryDirectory(prefix="gyldan-wheel-") as temporary:
         work = Path(temporary)
         components = work / "components"
