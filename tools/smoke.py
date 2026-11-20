@@ -3,7 +3,7 @@
 import subprocess
 import sys
 import tempfile
-from importlib.metadata import distributions, version
+from importlib.metadata import distributions, metadata, version
 from pathlib import Path
 
 from gyldan_core.validation import value
@@ -25,6 +25,14 @@ def main(expected_version):
     }
     assert installed == {"gyldan"}
     assert version("gyldan") == expected_version
+    package_metadata = metadata("gyldan")
+    readme = Path(__file__).resolve().parents[1] / "README.md"
+    assert package_metadata["Description"] == readme.read_text(encoding="utf-8")
+    assert package_metadata["Description-Content-Type"] == "text/markdown"
+    assert (
+        "Documentation, https://owebeeone.github.io/gyldan/"
+        in package_metadata.get_all("Project-URL")
+    )
     launcher = Path(sys.executable).with_name(
         "gyldan-shared.exe" if sys.platform == "win32" else "gyldan-shared"
     )

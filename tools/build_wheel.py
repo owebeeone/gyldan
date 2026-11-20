@@ -86,8 +86,10 @@ def assemble(version, tag, components, output):
     metadata["Name"] = "gyldan"
     metadata["Version"] = version
     metadata["Summary"] = "GyldanDB Python API and native file-backed database provider"
+    metadata["Description-Content-Type"] = "text/markdown"
     metadata["Requires-Python"] = ">=3.12"
     metadata["Project-URL"] = "Source, https://github.com/owebeeone/gyldan"
+    metadata["Project-URL"] = "Documentation, https://owebeeone.github.io/gyldan/"
     metadata["License-Expression"] = (
         "GPL-3.0-only AND BSD-3-Clause AND MIT AND Unicode-3.0"
     )
@@ -133,6 +135,7 @@ def assemble(version, tag, components, output):
                     payload[member] = wheel.read(member)
     for dependency in sorted(dependencies):
         metadata["Requires-Dist"] = dependency
+    metadata.set_payload((TOOLS.parent / "README.md").read_bytes())
     output.mkdir(parents=True, exist_ok=True)
     result = output / f"gyldan-{version}-{tag}.whl"
     with WheelFile(result, "w") as wheel:

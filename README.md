@@ -12,9 +12,10 @@ implementation that goes into each release.
 
 ## User documentation
 
-Start with the [Gyldan user guide](docs/index.md) to install the Python package,
-create a database, define concepts and work with objects, transactions and
-history. The guide includes a runnable example and command-line workflows.
+The [Gyldan documentation site](https://owebeeone.github.io/gyldan/) covers
+installation, concepts, objects, transactions and history. It includes a runnable
+example and command-line workflows. You can also read the
+[user guide in this repository](https://github.com/owebeeone/gyldan/blob/main/docs/index.md).
 
 To build the documentation locally, run these commands from the release
 repository root with a Python virtual environment active.
@@ -42,7 +43,7 @@ and Apple Silicon, Linux AMD64, and Linux ARM64 for 64-bit Raspberry Pi OS.
 The Linux wheels target the manylinux 2.34 baseline. GitHub's ARM Linux runner
 builds and tests the ARM wheel in that build environment.
 
-A tag of the form `v0.0.0a1` runs the same checks, publishes the complete wheel
+A tag such as `v0.0.0a2` runs the same checks, publishes the complete wheel
 set to PyPI through Trusted Publishing, and creates a GitHub prerelease with
 the wheels and checksums. A manual workflow run produces build artifacts.
 
