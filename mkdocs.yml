@@ -1,0 +1,75 @@
+site_name: Gyldan
+site_description: >-
+  Work with concepts, objects, transactions and persistent history in GyldanDB.
+site_url: https://owebeeone.github.io/gyldan/
+repo_url: https://github.com/owebeeone/gyldan
+repo_name: owebeeone/gyldan
+edit_uri: edit/main/docs/
+copyright: GPL-3.0-only
+
+theme:
+  name: material
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.sections
+    - navigation.top
+    - navigation.footer
+    - content.code.copy
+    - content.action.edit
+    - search.suggest
+    - search.highlight
+    - toc.follow
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - toc:
+      permalink: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.details
+  - pymdownx.tabbed:
+      alternate_style: true
+
+plugins:
+  - search
+
+nav:
+  - Home: index.md
+  - Basic ideas: understanding-gyldan.md
+  - Install: installation.md
+  - Quick start: getting-started.md
+  - Guides:
+      - Concepts and objects: concepts-and-objects.md
+      - Transactions and history: transactions-and-history.md
+      - Handles and overlays: handles-and-overlays.md
+      - Queries: queries.md
+      - Folders add-on: folders.md
+      - Storage and recovery: storage-and-recovery.md
+      - Operations and errors: operations.md
+  - Command line: command-line.md
+  - Python reference: python-reference.md
+  - Licensing: licensing.md

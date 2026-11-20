@@ -10,6 +10,27 @@ This repository is the home for release inputs, packaging code, and the
 documentation publishing workflow. The component repositories own the
 implementation that goes into each release.
 
+## User documentation
+
+Start with the [Gyldan user guide](docs/index.md) to install the Python package,
+create a database, define concepts and work with objects, transactions and
+history. The guide includes a runnable example and command-line workflows.
+
+To build the documentation locally, run these commands from the release
+repository root with a Python virtual environment active.
+
+```sh
+python -m pip install -r requirements-docs.txt
+python -m mkdocs build --strict
+```
+
+To preview the site, run the following command and open the local address it
+prints. Press Ctrl+C to stop the server.
+
+```sh
+python -m mkdocs serve
+```
+
 ## Python release builds
 
 Run **Build and publish Gyldan** from GitHub Actions to build and verify wheels
