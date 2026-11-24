@@ -67,6 +67,7 @@ nav:
       - Transactions and history: transactions-and-history.md
       - Handles and overlays: handles-and-overlays.md
       - Queries: queries.md
+      - Graph queries and change notifications: graph-queries-and-watches.md
       - Folders add-on: folders.md
       - Storage and recovery: storage-and-recovery.md
       - Operations and errors: operations.md

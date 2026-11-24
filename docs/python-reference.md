@@ -85,6 +85,44 @@ Iterating `matching` yields objects. `matching.first()` returns the first match
 or `None` when there is no match. Combine conditions with `&` and `|`, using
 parentheses around the component expressions.
 
+## Graph selections and change notifications
+
+These APIs are available in current alpha development builds. See
+[Graph queries and change notifications](graph-queries-and-watches.md) for a
+runnable example.
+
+| Call | Result |
+| --- | --- |
+| `graph.Selection(rules, summaries=...)` | Named rules and an optional mapping from concept names to summary field names |
+| `graph.Rule(name, set, detail=Detail.FULL)` | A named set expression with full, summary or reference detail |
+| `graph.evaluate(handle, selection, params=None, *, reference=False)` | A `SelectionResult` with a version and records keyed by UUID |
+| `graph.evaluate_tracked(handle, selection, params=None, *, reference=False)` | A result and the state required by `advance` |
+| `graph.advance(handle, tracked, to_version=None)` | A new tracked result and the delta, targeting the live version by default |
+| `catalog.open_changes(database_id, *, handle="main", include_initial=False, interval=1.0, notify=True)` | A `ChangeHandle` for committed view changes |
+| `graph.watch_selection(changes, handle, selection, params=None, *, since=None)` | An async iterator over `SelectionDelta` values |
+
+Import `graph` from `gyldan_core` and `Catalog` from `gyldan_shared`.
+Use `Detail.FULL`, `Detail.SUMMARY` or `Detail.REF` from `graph`. Result records
+carry `concept`, `detail`, `values`, `changes` and `rules`. `values` maps field
+names to Core property values. `changes` contains the record's latest available
+change coordinates per layer. `REF` records carry identity and rule membership
+with no values or change coordinates. Each delta has `from_version`,
+`to_version`, `added`, `removed` and `updated`.
+
+Keep a live Core reader on the same database and handle as the change handle
+for the duration of a query watch. Use context managers to close the database
+session and change handle, and `contextlib.aclosing` to end the watch when you
+leave an async iteration early. `reference=True` selects the provider-neutral
+evaluator for evaluation and tracking.
+
+For direct observation, `changes.poll()`, `changes.read_sync(timeout=None)`
+and `await changes.read(timeout=None)` return a `Change` with
+`database_id`, `handle_uuid`, `version` and `initial`. Polling with no pending
+change and reads that time out return `None`. Only one read may be pending per
+change handle. A read returns the newest observed view, which may include
+multiple commits. Closing the change handle ends iteration and wakes pending
+direct reads.
+
 ## Core handles and layers
 
 Import `HandleEnum` and `PropertyKey` from `gyldan_core`.
