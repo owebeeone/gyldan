@@ -123,7 +123,7 @@ traverse or scan more records before applying it.
 
 | Call | Result |
 | --- | --- |
-| `graph.evaluate_set(handle, node, params=None)` | A set of UUIDs selected by one expression. |
+| `graph.evaluate_set(handle, node, params=None)` | A set of UUIDs selected by one expression through the provider-neutral evaluator, including on Native Shared. |
 | `graph.evaluate(handle, selection, params=None, *, reference=False)` | A `SelectionResult` with `version` and `records` keyed by UUID. |
 | `graph.delta(handle, selection, from_version, to_version, params=None, *, reference=False)` | A `SelectionDelta` obtained by evaluating both historical views in full. |
 | `graph.evaluate_tracked(handle, selection, params=None, *, reference=False)` | A `Tracked` result with selection, parameters, result and read dependencies. |
@@ -132,18 +132,38 @@ traverse or scan more records before applying it.
 | `graph.touched_slots(handle, from_version, to_version)` | Only the written slots from `changes_between`. |
 
 `reference=True` uses the provider-neutral evaluator for that call. Native
-Shared uses its C++ evaluator by default. Advance forward on the same
-database, handle ancestry, selection and parameters.
+Shared captures one view for its default C++ selection evaluator. The
+provider-neutral path reads the supplied view repeatedly. For a coherent
+committed result while other sessions can write, pass a fixed Core view to
+`evaluate_set`, `evaluate` or `evaluate_tracked`. For example, use
+`graph.evaluate_tracked(reader.at(reader.get_version()), selection, params)`
+with a committed reader. If a change notification supplies the version, use
+`reader.at(change.version)`. Advance forward on the same database, handle
+ancestry, selection and parameters.
 
 Each delivered `Record` has `concept` (the concept UUID), `detail`,
 `values`, `changes` and `rules`. `values` maps field names to Core
 `PropertyValue` instances. `changes` contains the latest available record
 change per layer, in view order. `rules` lists the rules that reached the
-record in selection order. `Detail.FULL` projects the record's defined
-fields with present values. `Detail.SUMMARY` uses the configured fields for
-its actual concept, so supply a summary for each derived concept that needs
-fields in the result. `Detail.REF` carries identity, concept and rule
-membership and leaves `values` and `changes` empty.
+record in selection order. `Detail.FULL` projects available keyless values
+from the record's defined fields. `Detail.SUMMARY` projects available keyless
+values for the fields configured for the record's actual concept, so supply
+a summary for each derived concept that needs fields in the result.
+`Detail.REF` carries identity, concept and rule membership and leaves
+`values` and `changes` empty.
+
+Keyed list and map entries are outside both field projections. A change to
+one of those entries can still update a selected record's `changes`.
+To read the `tags` collection for a selected Note at `result.version`, pin the
+same Core reader to that version and fetch each tagged key.
+
+```python
+note = reader.at(result.version).get_instance(note_id)
+tags = {
+    key: note.get_keyed_property("tags", key).value
+    for key in note.get_property_keys("tags")
+}
+```
 
 A delta has `from_version`, `to_version`, `added` and `updated` maps keyed
 by UUID, and a `removed` set of UUIDs. A change to the detail, values,
@@ -164,7 +184,7 @@ reused, in that order. Reference advance returns `None` for `work`.
 | `catalog.open_changes(database_id, *, handle="main", include_initial=False, interval=1.0, notify=True)` | Open an independent consumer of committed view changes. Supply a database UUID and handle label. `interval` is in seconds. `notify=False` uses polling alone. |
 | `changes.poll()` | Return the newest ready `Change`, or `None` immediately. |
 | `changes.read_sync(timeout=None)`, `await changes.read(timeout=None)` | Wait for a `Change`. A timeout in seconds returns `None`. Omission waits until a change or closure. |
-| `changes.open_reader()` | Open a separate read-only Core handle with Shared. A change handle without a reader factory raises `NotAcceptable("no_reader")`. For an explicitly managed reader lifetime, open a read-only database session in a context and get its Core handle. |
+| `changes.open_reader()` | In Shared, return a Core handle that retains its own read-only session. The returned handle has a lifetime independent of the change handle, and this call exposes no public session context. A change handle without a reader factory raises `NotAcceptable("no_reader")`. |
 | `changes.close()`, `changes.closed` | End the handle and check whether it is closed. Synchronous and asynchronous context managers close it on exit. |
 | `graph.watch_selection(changes, handle, selection, params=None, *, since=None)` | Async iterator of `SelectionDelta` values. Supply a live Core reader for the same database and resolved handle. With `since`, use the last applied complete `Version` for that selection and parameter set. |
 
@@ -172,9 +192,12 @@ A `Change` carries `database_id`, `handle_uuid`, `version` and `initial`.
 It can represent several commits. Reading it advances that change handle's
 position. Each independent consumer needs its own handle. A concurrent
 poll or read on the same handle raises
-`NotAcceptable("change_handle_busy")`. Cancelling a pending async direct read
-abandons that read without advancing it. Closing the change handle ends
-iteration and wakes pending direct reads with
+`NotAcceptable("change_handle_busy")`. Cancelling an async direct read
+before settlement leaves its position unchanged. If cancellation races
+with delivery, the version may already have advanced. Open a new change
+handle with `include_initial=True` and query its exact version to recover
+without another commit. Closing the change handle ends iteration and wakes
+pending direct reads with
 `NotThere("change_handle_closed")`.
 
 Use `reader.at(change.version)` for an exact delivered view. The live reader
@@ -183,12 +206,20 @@ snapshot without `since`, and with `since` it yields only changes to the
 selection. An unchanged catch-up leaves the iterator waiting for an update.
 The watch advances past commits with empty deltas internally, so the next
 emitted `from_version` can differ from the last delivered `to_version`.
-Use `contextlib.aclosing` to close the iterator on early exit. Close the
-change handle and the reader's database session in their owning contexts.
+At startup or resume, the reader can be ahead of the observation. Compare
+complete ordered versions before applying a patch. Ignore duplicate or
+older targets with the same ancestry and request a snapshot for
+incompatible ancestry.
+
+Use `contextlib.aclosing` to close the iterator on early exit. For
+deterministic reader cleanup, use `with catalog.open(database_id=...,
+read_only=True) as database` and obtain the Core reader from
+`database.get_handle(...)`. Manage the change handle in its own context.
 Shared's `CoreHandle.close()` is a write-side handle operation and raises
-`NotAllowed("read_only")` on a read-only reader. On reconnect, resume
-from the last applied snapshot or delta. Request a full snapshot if the
-saved view is unavailable or the query scope has changed.
+`NotAllowed("read_only")` on a read-only reader. On reconnect, resume from
+the last applied checkpoint for the same verified authorization and query
+scope. Request a full snapshot if that scope changes or history is
+unavailable.
 
 ## Core handles and layers
 
