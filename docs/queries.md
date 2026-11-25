@@ -136,3 +136,6 @@ Current query execution scans the selected concept's records. Large result sets
 and retained historical views have memory and storage costs. See
 [storage and history costs](storage-and-recovery.md#history-memory-and-storage-growth)
 when planning long-running workloads.
+
+For reference traversal, parameterized lenses and live updates after commits,
+see [graph queries and change notifications](graph-queries-and-watches.md).

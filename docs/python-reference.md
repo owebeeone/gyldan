@@ -87,41 +87,108 @@ parentheses around the component expressions.
 
 ## Graph selections and change notifications
 
-These APIs are available in current alpha development builds. See
-[Graph queries and change notifications](graph-queries-and-watches.md) for a
-runnable example.
+These APIs are available in current alpha development builds. Import
+`graph` from `gyldan_core` and `Catalog` from `gyldan_shared`. Use a
+Core handle from the provider. See the
+[lens examples and UI update guide](graph-queries-and-watches.md).
+
+### Operators
+
+| Expression | Meaning |
+| --- | --- |
+| `graph.Param(name)` | A named parameter supplied in `params`. Its value is one record UUID or a reusable iterable of UUIDs, such as a tuple. Use it alone or inside `Ids`. |
+| `graph.Ids(items=())` | Seed from a tuple of record UUIDs and parameters. |
+| `graph.Scan(concept, where=None)` | Select the named concept and its derived instances, optionally using a Core `Condition`. |
+| `graph.Step(property, direction=Direction.OUT, concept=None, where=None)` | Follow a scalar reference forward by default. For `Direction.IN`, name the concept whose records point back through the property. `where` filters reached records. |
+| `graph.Follow(source, steps, min_repeat=1, max_repeat=1, include_source=False, fanout=None)` | Repeat a nonempty tuple of steps between the supplied bounds. `max_repeat=None` stops when no new records are reached. `include_source` includes the starting records. `fanout` keeps up to that many reached UUIDs per source in identity order. |
+| `graph.Union(parts)`, `graph.Intersect(parts)`, `graph.Except(left, right)` | Combine set expressions by union, intersection or difference. |
+| `graph.Where(source, predicate)` | Keep records matching a Core `Condition`, `Exists` or `Compare`. The same predicate forms work on `Step.where`. |
+| `graph.Exists(steps, negate=False)` | Test whether a path reaches any record. Use `negate=True` to test absence. |
+| `graph.Compare(left, right, equal=True)` | Compare the identity sets reached by two paths. Use `equal=False` to test inequality. |
+| `graph.Rule(name, set, detail=Detail.FULL)` | Give a set expression a unique rule name and a projection level. |
+| `graph.Selection(rules, summaries=...)` | A tuple of named rules with an optional mapping from concept names to tuples of summary field names. |
+
+Null or missing references contribute no outward target. An inward step
+without a concept raises `NotAcceptable("inward_step_needs_concept")`.
+Invalid repeat bounds or empty steps raise `invalid_follow`. A fanout below
+one raises `invalid_fanout`. Duplicate rule names raise `duplicate_rule`.
+A missing parameter is an error. The Reference evaluator reports
+`NotThere("parameter")`. Start a new tracked evaluation or watch to change
+parameter values.
+Use bounded traversals for interactive queries and sort rows separately for
+display. Fanout is a result limit, so the evaluator can still have to
+traverse or scan more records before applying it.
+
+### Evaluation, tracked changes and results
 
 | Call | Result |
 | --- | --- |
-| `graph.Selection(rules, summaries=...)` | Named rules and an optional mapping from concept names to summary field names |
-| `graph.Rule(name, set, detail=Detail.FULL)` | A named set expression with full, summary or reference detail |
-| `graph.evaluate(handle, selection, params=None, *, reference=False)` | A `SelectionResult` with a version and records keyed by UUID |
-| `graph.evaluate_tracked(handle, selection, params=None, *, reference=False)` | A result and the state required by `advance` |
-| `graph.advance(handle, tracked, to_version=None)` | A new tracked result and the delta, targeting the live version by default |
-| `catalog.open_changes(database_id, *, handle="main", include_initial=False, interval=1.0, notify=True)` | A `ChangeHandle` for committed view changes |
-| `graph.watch_selection(changes, handle, selection, params=None, *, since=None)` | An async iterator over `SelectionDelta` values |
+| `graph.evaluate_set(handle, node, params=None)` | A set of UUIDs selected by one expression. |
+| `graph.evaluate(handle, selection, params=None, *, reference=False)` | A `SelectionResult` with `version` and `records` keyed by UUID. |
+| `graph.delta(handle, selection, from_version, to_version, params=None, *, reference=False)` | A `SelectionDelta` obtained by evaluating both historical views in full. |
+| `graph.evaluate_tracked(handle, selection, params=None, *, reference=False)` | A `Tracked` result with selection, parameters, result and read dependencies. |
+| `graph.advance(handle, tracked, to_version=None)` | An `Advance` result at the supplied version or the live version by default. Keep its new `tracked` state for the next call. |
+| `graph.changes_between(handle, from_version, to_version)` | The written `PropertyKey` slots and created record UUIDs across visible layers in the range. |
+| `graph.touched_slots(handle, from_version, to_version)` | Only the written slots from `changes_between`. |
 
-Import `graph` from `gyldan_core` and `Catalog` from `gyldan_shared`.
-Use `Detail.FULL`, `Detail.SUMMARY` or `Detail.REF` from `graph`. Result records
-carry `concept`, `detail`, `values`, `changes` and `rules`. `values` maps field
-names to Core property values. `changes` contains the record's latest available
-change coordinates per layer. `REF` records carry identity and rule membership
-with no values or change coordinates. Each delta has `from_version`,
-`to_version`, `added`, `removed` and `updated`.
+`reference=True` uses the provider-neutral evaluator for that call. Native
+Shared uses its C++ evaluator by default. Advance forward on the same
+database, handle ancestry, selection and parameters.
 
-Keep a live Core reader on the same database and handle as the change handle
-for the duration of a query watch. Use context managers to close the database
-session and change handle, and `contextlib.aclosing` to end the watch when you
-leave an async iteration early. `reference=True` selects the provider-neutral
-evaluator for evaluation and tracking.
+Each delivered `Record` has `concept` (the concept UUID), `detail`,
+`values`, `changes` and `rules`. `values` maps field names to Core
+`PropertyValue` instances. `changes` contains the latest available record
+change per layer, in view order. `rules` lists the rules that reached the
+record in selection order. `Detail.FULL` projects the record's defined
+fields with present values. `Detail.SUMMARY` uses the configured fields for
+its actual concept, so supply a summary for each derived concept that needs
+fields in the result. `Detail.REF` carries identity, concept and rule
+membership and leaves `values` and `changes` empty.
 
-For direct observation, `changes.poll()`, `changes.read_sync(timeout=None)`
-and `await changes.read(timeout=None)` return a `Change` with
-`database_id`, `handle_uuid`, `version` and `initial`. Polling with no pending
-change and reads that time out return `None`. Only one read may be pending per
-change handle. A read returns the newest observed view, which may include
-multiple commits. Closing the change handle ends iteration and wakes pending
-direct reads.
+A delta has `from_version`, `to_version`, `added` and `updated` maps keyed
+by UUID, and a `removed` set of UUIDs. A change to the detail, values,
+record change metadata or reaching rules can produce an update. Removal
+means leaving the selection. A record that leaves one rule and still
+matches another remains in the result with updated rule membership.
+
+`Advance` holds `delta`, `tracked`, `affected` and `work`. The
+`affected` flag describes whether the change met the dependencies. Check
+the delta itself for changes to deliver. Native `work` reports the counts
+for nodes evaluated, nodes reused, projections evaluated and projections
+reused, in that order. Reference advance returns `None` for `work`.
+
+### Change handles and active watches
+
+| Call | Result or lifetime |
+| --- | --- |
+| `catalog.open_changes(database_id, *, handle="main", include_initial=False, interval=1.0, notify=True)` | Open an independent consumer of committed view changes. Supply a database UUID and handle label. `interval` is in seconds. `notify=False` uses polling alone. |
+| `changes.poll()` | Return the newest ready `Change`, or `None` immediately. |
+| `changes.read_sync(timeout=None)`, `await changes.read(timeout=None)` | Wait for a `Change`. A timeout in seconds returns `None`. Omission waits until a change or closure. |
+| `changes.open_reader()` | Open a separate read-only Core handle with Shared. A change handle without a reader factory raises `NotAcceptable("no_reader")`. For an explicitly managed reader lifetime, open a read-only database session in a context and get its Core handle. |
+| `changes.close()`, `changes.closed` | End the handle and check whether it is closed. Synchronous and asynchronous context managers close it on exit. |
+| `graph.watch_selection(changes, handle, selection, params=None, *, since=None)` | Async iterator of `SelectionDelta` values. Supply a live Core reader for the same database and resolved handle. With `since`, use the last applied complete `Version` for that selection and parameter set. |
+
+A `Change` carries `database_id`, `handle_uuid`, `version` and `initial`.
+It can represent several commits. Reading it advances that change handle's
+position. Each independent consumer needs its own handle. A concurrent
+poll or read on the same handle raises
+`NotAcceptable("change_handle_busy")`. Cancelling a pending async direct read
+abandons that read without advancing it. Closing the change handle ends
+iteration and wakes pending direct reads with
+`NotThere("change_handle_closed")`.
+
+Use `reader.at(change.version)` for an exact delivered view. The live reader
+can have advanced by the time you query. A watch yields a full initial
+snapshot without `since`, and with `since` it yields only changes to the
+selection. An unchanged catch-up leaves the iterator waiting for an update.
+The watch advances past commits with empty deltas internally, so the next
+emitted `from_version` can differ from the last delivered `to_version`.
+Use `contextlib.aclosing` to close the iterator on early exit. Close the
+change handle and the reader's database session in their owning contexts.
+Shared's `CoreHandle.close()` is a write-side handle operation and raises
+`NotAllowed("read_only")` on a read-only reader. On reconnect, resume
+from the last applied snapshot or delta. Request a full snapshot if the
+saved view is unavailable or the query scope has changed.
 
 ## Core handles and layers
 
