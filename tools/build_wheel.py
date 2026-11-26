@@ -205,6 +205,23 @@ def qualify(version, wheel, sources, directory, env):
         [str(python), "-I", str(TOOLS / "smoke.py"), version],
         env,
     )
+    # The suite compares the native provider with the in-memory Reference
+    # provider, which is a test package and is not part of the wheel. It is
+    # installed after the smoke test, which requires gyldan to be the only
+    # installed Gyldan distribution.
+    run(
+        "Install the Reference test provider",
+        [
+            str(python),
+            "-m",
+            "pip",
+            "install",
+            "--no-deps",
+            str(sources / "gyldan-test-py"),
+        ],
+        env,
+    )
+    tests = sources / "gyldan-shared-py/tests"
     run(
         "Run the Shared Python suite",
         [
@@ -215,9 +232,10 @@ def qualify(version, wheel, sources, directory, env):
             "--import-mode=importlib",
             "-p",
             "no:cacheprovider",
-            str(sources / "gyldan-shared-py/tests"),
+            str(tests),
         ],
-        dict(env, GYLDAN_SHARED_PY_FIXTURE=str(fixture)),
+        # Some test modules import helpers from a sibling test module.
+        dict(env, GYLDAN_SHARED_PY_FIXTURE=str(fixture), PYTHONPATH=str(tests)),
     )
 
 

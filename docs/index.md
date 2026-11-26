@@ -50,5 +50,5 @@ revisions. Keep the version used for a database with your application's release
 information. The compatibility policy starts with the first actual minor
 release. Version 1.0 starts its own compatibility line.
 
-This guide documents the `0.0.0a3` Python package. Its code is assembled
+This guide documents the `0.0.0a4` Python package. Its code is assembled
 from the component revisions recorded by this release repository.
