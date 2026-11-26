@@ -15,14 +15,15 @@ tracked selection as the handle's committed view changes.
 
 ## Set up a development environment
 
-Use a current alpha development build that provides `gyldan_core.graph` and
-`Catalog.open_changes()`. The published `0.0.0a2` wheel predates them.
-Install matching development wheels into a virtual environment, or build
-them in a complete sibling workspace. The public release repository describes
-its matching wheel artifacts. [Python release builds](https://github.com/owebeeone/gyldan#python-release-builds)
+The published `0.0.0a3` wheel provides `gyldan_core.graph` and
+`Catalog.open_changes()`, so the Native Shared examples on this page run with
+the installed `gyldan` package. The earlier `0.0.0a2` wheel predates them.
 
-The Reference example also needs the matching `gyldan-test-py` package.
-The Native Shared examples need `gyldan-shared-py`.
+The first example uses the in-memory Reference provider, which is in the
+separate `gyldan-test-py` package and is not part of the `gyldan` wheel. To
+run it, install matching development builds from a complete sibling workspace.
+The public release repository describes its matching wheel artifacts.
+[Python release builds](https://github.com/owebeeone/gyldan#python-release-builds)
 
 For a source install, use the following commands from the workspace root in
 your active virtual environment. The first line includes the Reference package

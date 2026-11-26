@@ -16,11 +16,16 @@ Import `Catalog` from `gyldan_shared`.
 | `database.database_id()` | The persisted database UUID |
 | `database.get_handle(name="main")` | A Core handle in this session |
 | `database.transaction_outcome(handle_uuid, transaction_uuid)` | An outcome with `status` and optional `change_number` |
+| `database.read_index_statistics()` | A dictionary with `built`, `enabled` and the read index counters since the session opened |
+| `database.set_read_index(enabled)` | Switch this session's read index on or off; `enabled` must be a `bool` |
 | `database.close()` | Close this session and its resources |
 
 Both `catalog.create` and `catalog.open` support context-manager use. Creation
 options include `segment_size`, `log_level`, `log_directory` and
 `directory_durability`. Opening supports `log_level` and `log_directory`.
+
+The read index is on by default. See [the read index](read-index.md) for the
+counters and what to expect from them.
 
 ## ObjectHandle
 
@@ -220,6 +225,23 @@ Shared's `CoreHandle.close()` is a write-side handle operation and raises
 the last applied checkpoint for the same verified authorization and query
 scope. Request a full snapshot if that scope changes or history is
 unavailable.
+
+## Schema migrations
+
+Import these from `gyldan.migrations`.
+
+| Call | Result |
+| --- | --- |
+| `install(handle)` | Install the migration vocabulary in the active writable transaction |
+| `configure_runner(handle)` or `configure_runner(handle, runner)` | Set the built-in or a supplied runner on the idle endpoint; pass `None` to clear it |
+| `prepare_schema_change(handle, proposal)` | A `PreparedMigration` for the proposal against the committed publishing view |
+| `check_migrations(prepared, *, report=None)` | A `MigrationReport` with `complete`, `eligible`, `blocking_count`, `counts` and `token` |
+| `stage_schema_change(transaction, prepared, token)` | Stage the schema and its Migration record in the active transaction |
+| `run_migrations(handle, concept)` | The number of records whose conversion was staged in the active transaction |
+| `migration_view(record)` | Inside a converter, the tagged-value view of the `old` or `new` record |
+
+See [schema migrations](schema-migrations.md) for worked examples, proposal
+keys, report fields and the rules for converters.
 
 ## Core handles and layers
 

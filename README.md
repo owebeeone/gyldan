@@ -43,7 +43,7 @@ and Apple Silicon, Linux AMD64, and Linux ARM64 for 64-bit Raspberry Pi OS.
 The Linux wheels target the manylinux 2.34 baseline. GitHub's ARM Linux runner
 builds and tests the ARM wheel in that build environment.
 
-A tag such as `v0.0.0a2` runs the same checks, publishes the complete wheel
+A tag such as `v0.0.0a3` runs the same checks, publishes the complete wheel
 set to PyPI through Trusted Publishing, and creates a GitHub prerelease with
 the wheels and checksums. A manual workflow run produces build artifacts.
 

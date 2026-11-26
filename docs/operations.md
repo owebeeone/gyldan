@@ -150,3 +150,11 @@ This example writes to `data/.gyldan/logs/library.jrnl.log`.
 The session owns the logger lifecycle. Closing it drains and joins its logging
 worker. Diagnostic logs serve inspection and troubleshooting; the native
 journal drives replay and transaction outcome.
+
+## Read index
+
+Each open session keeps a read index in process memory, on by default. It
+never changes what a read returns. `database.read_index_statistics()` reports
+whether it is on and what it has served, and `database.set_read_index(False)`
+switches it off for one session when you want to measure without it or rule
+it out. See [the read index](read-index.md).

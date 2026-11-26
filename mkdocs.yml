@@ -68,9 +68,11 @@ nav:
       - Handles and overlays: handles-and-overlays.md
       - Queries: queries.md
       - Graph queries and change notifications: graph-queries-and-watches.md
+      - Schema migrations: schema-migrations.md
       - Folders add-on: folders.md
       - Storage and recovery: storage-and-recovery.md
       - Operations and errors: operations.md
+      - Read index: read-index.md
   - Command line: command-line.md
   - Python reference: python-reference.md
   - Licensing: licensing.md
