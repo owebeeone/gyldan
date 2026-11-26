@@ -33,6 +33,15 @@ def run(label, args, env=None):
     if result.returncode:
         if not os.environ.get("GITHUB_ACTIONS"):
             sys.stderr.buffer.write(result.stdout + result.stderr)
+        elif label == "Run the Shared Python suite":
+            # Name the failing tests and give the totals. The test identifiers
+            # are printed alone: an assertion message can quote private source.
+            lines = result.stdout.decode(errors="replace").strip().splitlines()
+            for line in lines:
+                if line.startswith(("FAILED ", "ERROR ")):
+                    print(line.split(" - ", 1)[0], flush=True)
+            if lines:
+                print(lines[-1], flush=True)
         raise SystemExit(f"{label} failed with exit status {result.returncode}")
     if label == "Run the Shared Python suite":
         print(
@@ -229,6 +238,7 @@ def qualify(version, wheel, sources, directory, env):
             "-m",
             "pytest",
             "-q",
+            "-rfE",
             "--import-mode=importlib",
             "-p",
             "no:cacheprovider",
