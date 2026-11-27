@@ -41,6 +41,29 @@ Iteration runs the query. `first()` returns one matching object or `None`. Each
 execution answers from the selected view when that execution starts. A query
 object can be executed again after the live view has changed.
 
+## Order the results
+
+```python
+by_length = books.order_by(books.pages.desc(), books.title.asc())
+longest = by_length.where(books.pages.exists()).first()
+print(longest.title)  # Dune
+```
+
+The query compares terms left to right and uses ascending record UUID to
+break ties. `asc()` and `desc()` both put missing values last by default.
+Pass `missing="first"` to either method to put them first. An absent field,
+a stored null or a NaN counts as missing for ordering. An object attribute's
+schema default only participates if its value is stored in the query view.
+
+Use concrete scalar text, boolean or numeric fields. Each term must come
+from the query's class and view. Use item access for a field whose Python
+name collides with a query method, such as `books["order_by"].asc()`.
+Calling `order_by()` with zero terms restores listing order. Calling
+`where()` before or after ordering preserves the requested order.
+
+Ordering can examine every candidate before returning the first result.
+Use a fixed view for repeated executions that must see the same version.
+
 ## Combine conditions
 
 ```python
