@@ -23,11 +23,11 @@ the commands for your shell from the directory where you want to work.
     source .venv/bin/activate
     ```
 
-Install `0.0.0a5` and check both entry points.
+Install `0.0.0a6` and check both entry points.
 
 ```sh
 python -m pip install --upgrade pip
-python -m pip install "gyldan==0.0.0a5"
+python -m pip install "gyldan==0.0.0a6"
 python -m pip check
 gyldan-shared --help
 python -m gyldan_shared --help
@@ -39,7 +39,7 @@ The available versions and files are listed on the [Gyldan PyPI page](https://py
 
 ## Wheel platforms
 
-Gyldan `0.0.0a5` has wheels for CPython 3.12, 3.13, 3.14 and 3.15 on these
+Gyldan `0.0.0a6` has wheels for CPython 3.12, 3.13, 3.14 and 3.15 on these
 platforms.
 
 | Platform | Wheel requirement |
@@ -66,10 +66,10 @@ python -c "from importlib.metadata import version; print(version('gyldan'))"
 python -c "from gyldan import ObjectHandle; from gyldan_shared import Catalog; print('Gyldan imports successfully')"
 ```
 
-If you installed `0.0.0a5`, you should see the following output.
+If you installed `0.0.0a6`, you should see the following output.
 
 ```text
-0.0.0a5
+0.0.0a6
 Gyldan imports successfully
 ```
 

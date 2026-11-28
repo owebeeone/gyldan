@@ -15,7 +15,7 @@ tracked selection as the handle's committed view changes.
 
 ## Set up a development environment
 
-The published `0.0.0a5` wheel provides `gyldan_core.graph` and
+The published `0.0.0a6` wheel provides `gyldan_core.graph` and
 `Catalog.open_changes()`, so the Native Shared examples on this page run with
 the installed `gyldan` package. The earlier `0.0.0a2` wheel predates them.
 

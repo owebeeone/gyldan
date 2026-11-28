@@ -21,8 +21,10 @@ Import `Catalog` from `gyldan_shared`.
 | `database.close()` | Close this session and its resources |
 
 Both `catalog.create` and `catalog.open` support context-manager use. Creation
-options include `segment_size`, `log_level`, `log_directory` and
-`directory_durability`. Opening supports `log_level` and `log_directory`.
+options include `segment_size`, `log_level`, `log_directory`,
+`directory_durability`, `bplus_node_size` and `radix_node_size`. Opening
+supports `log_level`, `log_directory`, `default_tree_layout` and
+`replay_tree_layouts`. See [tree node sizes](storage-and-recovery.md#tree-node-sizes).
 
 The read index is on by default. See [the read index](read-index.md) for the
 counters and what to expect from them.
@@ -43,7 +45,7 @@ Import `ObjectHandle`, `instance_id`, `concept` and `concept_property` from
 | `objects.get_class(concept)` | The generated class for a committed concept |
 | `objects.get_version()` | This view's complete version |
 | `objects.at(version)` | A fixed object view at that version |
-| `objects.create_handle(mode)` | An object view for a new child handle |
+| `objects.create_handle(mode, *, parents=(), bplus_node_size=8, radix_node_size=64)` | An object view for a new child handle |
 | `instance_id(object)` | The object's UUID |
 
 `concept` names a concept by string in the examples. `define` accepts an optional
@@ -255,6 +257,9 @@ Import `HandleEnum` and `PropertyKey` from `gyldan_core`.
 | `handle.create_handle(HandleEnum.OVERLAY)` | A child with live parent ancestry between transactions |
 | `handle.merge()` | Merge all child changes to its parent and return the parent's change number |
 | `handle.merge_to_parent({PropertyKey(instance_uuid, property_name, key)})` | Merge selected scalar properties or keyed entries |
+
+`create_handle` also accepts keyword-only `bplus_node_size` and
+`radix_node_size`. A child's sizes are independent of its parent's.
 
 Use `key=None` for a scalar property. Child creation and merge are lifecycle
 operations performed outside the relevant transactions. See

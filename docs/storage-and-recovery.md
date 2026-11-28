@@ -99,6 +99,60 @@ required flush operations. [Creation support](operations.md#filesystem-creation-
 explains the explicit ReFS best-effort route and its directory-persistence
 limit.
 
+## Tree node sizes
+
+Each handle chooses the node capacity of its B+ trees and the node width of
+its radix maps when it is created. Both sizes accept integers of at least `2`,
+subject to the segment capacity and the storage format's limits. The defaults
+are B+ capacity `8` and radix width `64`. A child chooses its own sizes,
+independently of its parent. The sizes are fixed for the handle's lifetime.
+
+```python
+from gyldan_core import HandleEnum
+from gyldan_shared import Catalog
+
+catalog = Catalog("./layout-data")
+with catalog.create("custom-layout", bplus_node_size=33, radix_node_size=5) as database:
+    root = database.get_handle("main")
+    child = root.create_handle(HandleEnum.COW, bplus_node_size=2, radix_node_size=3)
+```
+
+The command line accepts the same sizes:
+`gyldan-shared --catalog ./cli-data create --bplus-node-size 33 --radix-node-size 5 library`.
+
+Ordinary reopen keeps each working copy's recorded sizes. When journal recovery
+builds a fresh working copy, a writable open can choose new sizes. Pass
+`default_tree_layout` for every rebuilt handle, and `replay_tree_layouts` to
+override it for specific handle UUIDs.
+
+```python
+from gyldan_shared import TreeLayout
+
+with catalog.open(name="custom-layout",
+                  default_tree_layout=TreeLayout(bplus_node_size=5, radix_node_size=732)) as database:
+    pass
+```
+
+Without either option, a rebuild uses the sizes of the previous readable
+working copy, or the defaults when there is none. The journal records logical
+changes, so it is independent of the chosen sizes.
+
+## Upgrading from an earlier alpha
+
+This release changes the working-copy format and the way sessions coordinate
+through the database's `-open.lock` file. A writable open detects working-copy
+files from an earlier alpha and rebuilds them from the journal when the
+affected handle opens. The rebuilt segment files replace the old ones under new
+names.
+
+Close every client running an earlier alpha before the first open with this
+release. Earlier clients do not take part in the new lock protocol. Keep a
+copy of the catalog directory if you may need to return to an earlier alpha.
+
+A read-only session holds a shared lock on the database's format. If a writable
+open needs to rebuild while such a session is open, the open returns `busy`.
+Close the read-only client and retry.
+
 ## History, memory and storage growth
 
 Gyldan retains committed history and currently has substantial memory and disk
