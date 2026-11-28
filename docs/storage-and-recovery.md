@@ -104,7 +104,7 @@ limit.
 Each handle chooses the node capacity of its B+ trees and the node width of
 its radix maps when it is created. Both sizes accept integers of at least `2`,
 subject to the segment capacity and the storage format's limits. The defaults
-are B+ capacity `8` and radix width `64`. A child chooses its own sizes,
+are B+ capacity `14` and radix width `32`. A child chooses its own sizes,
 independently of its parent. The sizes are fixed for the handle's lifetime.
 
 ```python

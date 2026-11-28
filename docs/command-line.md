@@ -30,7 +30,7 @@ database name. The default handle is `main`; `--handle` selects another root
 label or an existing child UUID.
 
 `create` accepts `--bplus-node-size N` and `--radix-node-size N`. Each size
-must be at least `2`; the defaults are `8` and `64`. The root keeps these
+must be at least `2`; the defaults are `14` and `32`. The root keeps these
 sizes for its lifetime. See [tree node sizes](storage-and-recovery.md#tree-node-sizes).
 
 ## Define a concept

@@ -45,7 +45,7 @@ Import `ObjectHandle`, `instance_id`, `concept` and `concept_property` from
 | `objects.get_class(concept)` | The generated class for a committed concept |
 | `objects.get_version()` | This view's complete version |
 | `objects.at(version)` | A fixed object view at that version |
-| `objects.create_handle(mode, *, parents=(), bplus_node_size=8, radix_node_size=64)` | An object view for a new child handle |
+| `objects.create_handle(mode, *, parents=(), bplus_node_size=14, radix_node_size=32)` | An object view for a new child handle |
 | `instance_id(object)` | The object's UUID |
 
 `concept` names a concept by string in the examples. `define` accepts an optional
